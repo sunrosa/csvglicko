@@ -1,13 +1,43 @@
 use std::error::Error;
 
-use skillratings::glicko2::Glicko2Rating;
+use clap::Parser;
+
+#[derive(Parser)]
+#[command(about)]
+struct Cli {
+    #[arg(short = 'd', long = "maximum-deviation")]
+    maximum_deviation: Option<u32>,
+}
 
 fn main() -> Result<(), Box<dyn Error>> {
+    // Parse command-line arguments
+    let cli = Cli::parse();
+
+    // Generate all ratings from stdin
+    let ratings = rate()?;
+
+    for rating in ratings {
+        // If the maximum deviation option is set, limit all output to below that number
+        if cli.maximum_deviation.is_some()
+            && rating.1.deviation > cli.maximum_deviation.unwrap() as f64
+        {
+            continue;
+        }
+
+        println!("{}: {}", rating.0, rating.1.rating);
+    }
+
+    Ok(())
+}
+
+fn rate(
+) -> Result<std::collections::HashMap<String, skillratings::glicko2::Glicko2Rating>, Box<dyn Error>>
+{
     let glicko2_config = skillratings::glicko2::Glicko2Config::new();
     let glicko2_default_rating = skillratings::glicko2::Glicko2Rating::new();
 
     let mut player_ratings: std::collections::HashMap<
-        std::string::String,
+        String,
         skillratings::glicko2::Glicko2Rating,
     > = std::collections::HashMap::new();
 
@@ -47,8 +77,5 @@ fn main() -> Result<(), Box<dyn Error>> {
         player_ratings.insert(player_2_name, new_player_2);
     }
 
-    for rating in player_ratings {
-        println!("{}: {:?}", rating.0, rating.1.rating);
-    }
-    Ok(())
+    Ok(player_ratings)
 }
