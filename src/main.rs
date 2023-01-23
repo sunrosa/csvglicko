@@ -23,19 +23,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         let player_1_name = record.get(0).unwrap().to_string();
         let player_2_name = record.get(1).unwrap().to_string();
 
-        // Get the players from storage, or otherwise create new player ratings from the default specified above
-        // This can be optimized. It should not insert into the hashmap as default.
+        // Get players from storage, or create them otherwise
         let mut player_1: skillratings::glicko2::Glicko2Rating = glicko2_default_rating;
-        {
-            player_1 = *player_ratings
-                .entry(player_1_name.clone())
-                .or_insert(glicko2_default_rating);
+        if player_ratings.contains_key(&player_1_name) {
+            let player_1 = player_ratings.get(&player_1_name).unwrap();
         }
         let mut player_2: skillratings::glicko2::Glicko2Rating = glicko2_default_rating;
-        {
-            player_2 = *player_ratings
-                .entry(player_2_name.clone())
-                .or_insert(glicko2_default_rating);
+        if player_ratings.contains_key(&player_2_name) {
+            let player_2 = player_ratings.get(&player_2_name).unwrap();
         }
 
         // Set the outcome to a draw if specified in the csv
