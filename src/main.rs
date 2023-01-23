@@ -53,7 +53,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     for rating in player_ratings {
-        println!("{}: {:?}", rating.0, rating.1);
+        println!("{}: {:?}", rating.0, rating.1.rating);
     }
     Ok(())
 }
