@@ -26,11 +26,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         // Get players from storage, or create them otherwise
         let mut player_1: skillratings::glicko2::Glicko2Rating = glicko2_default_rating;
         if player_ratings.contains_key(&player_1_name) {
-            let player_1 = player_ratings.get(&player_1_name).unwrap();
+            player_1 = *player_ratings.get(&player_1_name).unwrap();
         }
         let mut player_2: skillratings::glicko2::Glicko2Rating = glicko2_default_rating;
         if player_ratings.contains_key(&player_2_name) {
-            let player_2 = player_ratings.get(&player_2_name).unwrap();
+            player_2 = *player_ratings.get(&player_2_name).unwrap();
         }
 
         // Set the outcome to a draw if specified in the csv
