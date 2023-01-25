@@ -56,6 +56,22 @@ struct Args {
     )]
     default_volatility: f64,
 
+    /// Tau value used in the Glicko-2 configuration.
+    #[arg(
+        long = "default-tau",
+        help = "Tau value used in the Glicko-2 configuration.",
+        default_value = "0.5"
+    )]
+    default_tau: f64,
+
+    /// Convergence tolerance to be used in the Glicko-2 configuration.
+    #[arg(
+        long = "default-tolerance",
+        help = "Convergence tolerance to be used in the Glicko-2 configuration.",
+        default_value = "0.000001"
+    )]
+    default_convergence_tolerance: f64,
+
     /// Filter out provisional ratings.
     #[arg(
         short = 'p',
@@ -79,6 +95,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Initialize Glicko-2 rating and default config
     let glicko2_config = skillratings::glicko2::Glicko2Config {
+        tau: args.default_tau,
+        convergence_tolerance: args.default_convergence_tolerance,
         ..Default::default()
     };
     let glicko2_default_rating = skillratings::glicko2::Glicko2Rating {
