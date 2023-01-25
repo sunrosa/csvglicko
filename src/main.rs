@@ -1,4 +1,5 @@
 use clap::Parser;
+use colored::Colorize;
 use std::error::Error;
 
 mod local_glicko2;
@@ -25,12 +26,17 @@ fn main() -> Result<(), Box<dyn Error>> {
             continue;
         }
 
-        let mut provisional_mark: &str = "";
+        let mut provisional_mark: &str = " ";
         if rating.1.deviation > 110.0 {
             provisional_mark = "?";
         }
 
-        println!("{:.2}{}: {}", rating.1.rating, provisional_mark, rating.0);
+        println!(
+            "{}{} {}",
+            format!("{:.2}", rating.1.rating).red(),
+            provisional_mark.yellow(),
+            rating.0.to_string().blue()
+        );
     }
 
     Ok(())
