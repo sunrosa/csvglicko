@@ -32,6 +32,15 @@ struct Args {
     )]
     provisional_threshold: Option<f64>,
 
+    /// Default rating to be used for players.
+    #[arg(
+        short = 'r',
+        long = "default-rating",
+        help = "Default rating to be used for players.",
+        default_value = "1500.0"
+    )]
+    default_rating: Option<f64>,
+
     /// Filter out provisional ratings.
     #[arg(
         short = 'p',
@@ -42,7 +51,7 @@ struct Args {
 
     /// Sort ascending by rating deviation.
     #[arg(
-        short = 'r',
+        short = 's',
         long = "sort-deviation",
         help = "Sort ascending by rating deviation."
     )]
@@ -53,8 +62,19 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Parse command-line arguments
     let args = Args::parse();
 
+    // Initialize Glicko-2 rating and default config
+    let glicko2_config = skillratings::glicko2::Glicko2Config {
+        ..Default::default()
+    };
+    let glicko2_default_rating = skillratings::glicko2::Glicko2Rating {
+        rating: args
+            .default_rating
+            .expect("DEFAULT_RATING has a default value. You should never see this panic."),
+        ..Default::default()
+    };
+
     // Generate all ratings from stdin
-    let ratings = rate_stdin()?;
+    let ratings = rate_stdin(&glicko2_config, &glicko2_default_rating)?;
     let mut ratings_sorted: Vec<_> = ratings.into_iter().collect();
 
     // Sort ratings descending (highest first) by rating, unless sort_rating_deviation flag is set. In that case, sort ascending by rating deviation.
@@ -103,12 +123,17 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+/// Generate ratings for all players in the csv file passed in through stdin.
+///
+/// # Arguments
+///
+/// * `glicko2_config` - The Glicko-2 configuration to be used in rating calculation.
+/// * `glicko2_default_rating` - The default Glicko-2 rating to be used for newly-instantiated players.
 fn rate_stdin(
+    glicko2_config: &skillratings::glicko2::Glicko2Config,
+    glicko2_default_rating: &skillratings::glicko2::Glicko2Rating,
 ) -> Result<std::collections::HashMap<String, skillratings::glicko2::Glicko2Rating>, Box<dyn Error>>
 {
-    let glicko2_config = skillratings::glicko2::Glicko2Config::new();
-    let glicko2_default_rating = skillratings::glicko2::Glicko2Rating::new();
-
     let mut player_ratings: std::collections::HashMap<
         String,
         skillratings::glicko2::Glicko2Rating,
@@ -127,11 +152,11 @@ fn rate_stdin(
         let outcome: f64 = record.get(2).unwrap().parse().unwrap();
 
         // Get players from storage, or create them otherwise
-        let mut player_1: skillratings::glicko2::Glicko2Rating = glicko2_default_rating;
+        let mut player_1: skillratings::glicko2::Glicko2Rating = glicko2_default_rating.clone();
         if player_ratings.contains_key(&player_1_name) {
             player_1 = *player_ratings.get(&player_1_name).unwrap();
         }
-        let mut player_2: skillratings::glicko2::Glicko2Rating = glicko2_default_rating;
+        let mut player_2: skillratings::glicko2::Glicko2Rating = glicko2_default_rating.clone();
         if player_ratings.contains_key(&player_2_name) {
             player_2 = *player_ratings.get(&player_2_name).unwrap();
         }
