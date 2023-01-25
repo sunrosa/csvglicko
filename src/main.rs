@@ -144,7 +144,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     // Output loop
-    for rating in ratings_sorted {
+    for (index, rating) in ratings_sorted.iter().enumerate() {
         // If the maximum deviation option is set, limit all output to below that number
         if args.maximum_deviation.is_some()
             && rating.1.deviation > args.maximum_deviation.unwrap() as f64
@@ -171,12 +171,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
 
         println!(
-            "{}{} {} {} {}",
+            "{}. {}{} {} {} {}",
+            index,
             format!("{:.2}", rating.1.rating).red(),
             provisional_mark.yellow(),
             format!("{:.0}", rating.1.deviation).cyan(),
             format!("{:.8}", rating.1.volatility).purple(),
-            rating.0.to_string().blue()
+            rating.0.to_string().blue(),
         );
     }
 
