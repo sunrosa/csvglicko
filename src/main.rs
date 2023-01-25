@@ -30,16 +30,31 @@ struct Args {
         help = "Threshold above which ratings are considered provisional.",
         default_value = "110.0"
     )]
-    provisional_threshold: Option<f64>,
+    provisional_threshold: f64,
 
     /// Default rating to be used for players.
     #[arg(
-        short = 'r',
         long = "default-rating",
         help = "Default rating to be used for players.",
         default_value = "1500.0"
     )]
-    default_rating: Option<f64>,
+    default_rating: f64,
+
+    /// Default rating deviation to be used for players.
+    #[arg(
+        long = "default-deviation",
+        help = "Default rating deviation to be used for players.",
+        default_value = "350.0"
+    )]
+    default_rating_deviation: f64,
+
+    /// Default volatility to be used for players.
+    #[arg(
+        long = "default-volatility",
+        help = "Default volatility to be used for players.",
+        default_value = "0.06"
+    )]
+    default_volatility: f64,
 
     /// Filter out provisional ratings.
     #[arg(
@@ -51,7 +66,7 @@ struct Args {
 
     /// Sort ascending by rating deviation.
     #[arg(
-        short = 's',
+        short = 'r',
         long = "sort-deviation",
         help = "Sort ascending by rating deviation."
     )]
@@ -67,9 +82,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         ..Default::default()
     };
     let glicko2_default_rating = skillratings::glicko2::Glicko2Rating {
-        rating: args
-            .default_rating
-            .expect("DEFAULT_RATING has a default value. You should never see this panic."),
+        rating: args.default_rating,
+        deviation: args.default_rating_deviation,
+        volatility: args.default_volatility,
         ..Default::default()
     };
 
@@ -101,13 +116,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
 
         // Filter out provisional ratings if the filter_provisional flag is set
-        if args.filter_provisional && rating.1.deviation > args.provisional_threshold.expect("The option PROVISIONAL_THRESHOLD has a default value, and therefore you should never see this panic.") {
+        if args.filter_provisional && rating.1.deviation > args.provisional_threshold {
             continue;
         }
 
         // Determine whether the provisional mark should be empty or a question mark
         let mut provisional_mark: &str = " ";
-        if rating.1.deviation > args.provisional_threshold.expect("The option PROVISIONAL_THRESHOLD has a default value, and therefore you should never see this panic.") {
+        if rating.1.deviation > args.provisional_threshold {
             provisional_mark = "?";
         }
 
