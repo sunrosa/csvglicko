@@ -145,10 +145,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
 
         println!(
-            "{}{} {} {}",
+            "{}{} {} {} {}",
             format!("{:.2}", rating.1.rating).red(),
             provisional_mark.yellow(),
             format!("{:.0}", rating.1.deviation).cyan(),
+            format!("{:.8}", rating.1.volatility).purple(),
             rating.0.to_string().blue()
         );
     }
