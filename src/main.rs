@@ -87,6 +87,18 @@ struct Args {
         help = "Sort ascending by rating deviation."
     )]
     sort_rating_deviation: bool,
+
+    /// Sort descending by volatility.
+    #[arg(
+        short = 'v',
+        long = "sort-volatility",
+        help = "Sort descending by volatility."
+    )]
+    sort_volatility: bool,
+
+    /// Reverse sorting.
+    #[arg(short = 'i', long = "sort-reverse", help = "Reverse sorting.")]
+    sort_reverse: bool,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -110,11 +122,25 @@ fn main() -> Result<(), Box<dyn Error>> {
     let ratings = rate_stdin(&glicko2_config, &glicko2_default_rating)?;
     let mut ratings_sorted: Vec<_> = ratings.into_iter().collect();
 
-    // Sort ratings descending (highest first) by rating, unless sort_rating_deviation flag is set. In that case, sort ascending by rating deviation.
-    if !args.sort_rating_deviation {
-        ratings_sorted.sort_by(|a, b| b.1.rating.partial_cmp(&a.1.rating).unwrap());
+    // Sort ratings according to options.
+    if args.sort_rating_deviation {
+        if !args.sort_reverse {
+            ratings_sorted.sort_by(|a, b| a.1.deviation.partial_cmp(&b.1.deviation).unwrap());
+        } else {
+            ratings_sorted.sort_by(|a, b| b.1.deviation.partial_cmp(&a.1.deviation).unwrap());
+        }
+    } else if args.sort_volatility {
+        if !args.sort_reverse {
+            ratings_sorted.sort_by(|a, b| b.1.volatility.partial_cmp(&a.1.volatility).unwrap());
+        } else {
+            ratings_sorted.sort_by(|a, b| a.1.volatility.partial_cmp(&b.1.volatility).unwrap());
+        }
     } else {
-        ratings_sorted.sort_by(|a, b| a.1.deviation.partial_cmp(&b.1.deviation).unwrap());
+        if !args.sort_reverse {
+            ratings_sorted.sort_by(|a, b| b.1.rating.partial_cmp(&a.1.rating).unwrap());
+        } else {
+            ratings_sorted.sort_by(|a, b| a.1.rating.partial_cmp(&b.1.rating).unwrap());
+        }
     }
 
     // Output loop
