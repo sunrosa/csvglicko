@@ -48,7 +48,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Generate all ratings from stdin
     let ratings = rate_stdin()?;
 
-    for rating in ratings {
+    // Sort ratings descending (highest first)
+    let mut ratings_sorted: Vec<_> = ratings.into_iter().collect();
+    ratings_sorted.sort_by(|a, b| b.1.rating.partial_cmp(&a.1.rating).unwrap());
+
+    // Output loop
+    for rating in ratings_sorted {
         // If the maximum deviation option is set, limit all output to below that number
         if args.maximum_deviation.is_some()
             && rating.1.deviation > args.maximum_deviation.unwrap() as f64
