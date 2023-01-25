@@ -1,4 +1,6 @@
 // BEGIN MODIFIED CODE FROM https://crates.io/crates/skillratings
+// List of modifications from source:
+// * Make outcome argument f64 instead of enum, to allow outcomes between wins, draws, and losses (e.g. 0.6)
 
 pub fn glicko2(
     player_one: &skillratings::glicko2::Glicko2Rating,

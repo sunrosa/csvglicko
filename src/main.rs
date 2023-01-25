@@ -25,7 +25,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             continue;
         }
 
-        println!("{}: {}", rating.0, rating.1.rating);
+        let mut provisional_mark: &str = "";
+        if rating.1.deviation > 110.0 {
+            provisional_mark = "?";
+        }
+
+        println!("{:.2}{}: {}", rating.1.rating, provisional_mark, rating.0);
     }
 
     Ok(())
@@ -51,6 +56,7 @@ fn rate_stdin(
         let player_1_name = record.get(0).unwrap().to_string();
         let player_2_name = record.get(1).unwrap().to_string();
 
+        // Get the outcome of the game from the csv line
         let outcome: f64 = record.get(2).unwrap().parse().unwrap();
 
         // Get players from storage, or create them otherwise
