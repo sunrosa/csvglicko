@@ -99,6 +99,10 @@ struct Args {
     /// Reverse sorting.
     #[arg(short = 'i', long = "sort-reverse", help = "Reverse sorting.")]
     sort_reverse: bool,
+
+    /// Output result limit.
+    #[arg(short = 'l', long = "result-limit", help = "Output result limit.")]
+    result_limit: Option<u32>,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -145,6 +149,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Output loop
     for (index, rating) in ratings_sorted.iter().enumerate() {
+        if args.result_limit.is_some() && index >= args.result_limit.unwrap() as usize {
+            break;
+        }
+
         // If the maximum deviation option is set, limit all output to below that number
         if args.maximum_deviation.is_some()
             && rating.1.deviation > args.maximum_deviation.unwrap() as f64
@@ -172,7 +180,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         println!(
             "{}. {}{} {} {} {}",
-            index,
+            index + 1,
             format!("{:.2}", rating.1.rating).red(),
             provisional_mark.yellow(),
             format!("{:.0}", rating.1.deviation).cyan(),
