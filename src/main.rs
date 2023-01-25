@@ -4,16 +4,29 @@ use std::error::Error;
 
 mod local_glicko2;
 
+/// Command-line arguments for csvglicko.
 #[derive(Parser)]
 #[command(about)]
-struct Cli {
-    #[arg(short = 'd', long = "maximum-deviation")]
+struct Args {
+    /// Maximum rating deviation to filter output with.
+    #[arg(
+        short = 'd',
+        long = "maximum-deviation",
+        help = "Maximum rating deviation to filter output with."
+    )]
     maximum_deviation: Option<u32>,
+
+    /// Minimum rating deviation to filter output with.
+    #[arg(
+        long = "minimum-deviation",
+        help = "Minimum rating deviation to filter output with."
+    )]
+    minimum_deviation: Option<u32>,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Parse command-line arguments
-    let cli = Cli::parse();
+    let cli = Args::parse();
 
     // Generate all ratings from stdin
     let ratings = rate_stdin()?;
@@ -22,6 +35,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         // If the maximum deviation option is set, limit all output to below that number
         if cli.maximum_deviation.is_some()
             && rating.1.deviation > cli.maximum_deviation.unwrap() as f64
+        {
+            continue;
+        }
+
+        // If the minimum deviation option is set, limit all output to above that number
+        if cli.minimum_deviation.is_some()
+            && rating.1.deviation < cli.minimum_deviation.unwrap() as f64
         {
             continue;
         }
