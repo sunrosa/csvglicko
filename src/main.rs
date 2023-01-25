@@ -39,6 +39,14 @@ struct Args {
         help = "Filter out provisional ratings."
     )]
     filter_provisional: bool,
+
+    /// Sort ascending by rating deviation.
+    #[arg(
+        short = 'r',
+        long = "sort-deviation",
+        help = "Sort ascending by rating deviation."
+    )]
+    sort_rating_deviation: bool,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -47,10 +55,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Generate all ratings from stdin
     let ratings = rate_stdin()?;
-
-    // Sort ratings descending (highest first)
     let mut ratings_sorted: Vec<_> = ratings.into_iter().collect();
-    ratings_sorted.sort_by(|a, b| b.1.rating.partial_cmp(&a.1.rating).unwrap());
+
+    // Sort ratings descending (highest first) by rating, unless sort_rating_deviation flag is set. In that case, sort ascending by rating deviation.
+    if !args.sort_rating_deviation {
+        ratings_sorted.sort_by(|a, b| b.1.rating.partial_cmp(&a.1.rating).unwrap());
+    } else {
+        ratings_sorted.sort_by(|a, b| a.1.deviation.partial_cmp(&b.1.deviation).unwrap());
+    }
 
     // Output loop
     for rating in ratings_sorted {
