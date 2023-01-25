@@ -22,32 +22,55 @@ struct Args {
         help = "Minimum rating deviation to filter output with."
     )]
     minimum_deviation: Option<u32>,
+
+    /// Threshold above which ratings are considered provisional.
+    #[arg(
+        short = 't',
+        long = "provisional-threshold",
+        help = "Threshold above which ratings are considered provisional.",
+        default_value = "110.0"
+    )]
+    provisional_threshold: Option<f64>,
+
+    /// Filter out provisional ratings.
+    #[arg(
+        short = 'p',
+        long = "filter-provisional",
+        help = "Filter out provisional ratings."
+    )]
+    filter_provisional: bool,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Parse command-line arguments
-    let cli = Args::parse();
+    let args = Args::parse();
 
     // Generate all ratings from stdin
     let ratings = rate_stdin()?;
 
     for rating in ratings {
         // If the maximum deviation option is set, limit all output to below that number
-        if cli.maximum_deviation.is_some()
-            && rating.1.deviation > cli.maximum_deviation.unwrap() as f64
+        if args.maximum_deviation.is_some()
+            && rating.1.deviation > args.maximum_deviation.unwrap() as f64
         {
             continue;
         }
 
         // If the minimum deviation option is set, limit all output to above that number
-        if cli.minimum_deviation.is_some()
-            && rating.1.deviation < cli.minimum_deviation.unwrap() as f64
+        if args.minimum_deviation.is_some()
+            && rating.1.deviation < args.minimum_deviation.unwrap() as f64
         {
             continue;
         }
 
+        // Filter out provisional ratings if the filter_provisional flag is set
+        if args.filter_provisional && rating.1.deviation > args.provisional_threshold.expect("The option PROVISIONAL_THRESHOLD has a default value, and therefore you should never see this panic.") {
+            continue;
+        }
+
+        // Determine whether the provisional mark should be empty or a question mark
         let mut provisional_mark: &str = " ";
-        if rating.1.deviation > 110.0 {
+        if rating.1.deviation > args.provisional_threshold.expect("The option PROVISIONAL_THRESHOLD has a default value, and therefore you should never see this panic.") {
             provisional_mark = "?";
         }
 
