@@ -109,7 +109,7 @@ struct Args {
     result_limit: Option<u32>,
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() {
     // Parse command-line arguments
     let args = Args::parse();
 
@@ -127,7 +127,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     // Generate all ratings from stdin
-    let ratings = rate_file(&glicko2_config, &glicko2_default_rating, &args.csv)?;
+    let ratings = match rate_file(&glicko2_config, &glicko2_default_rating, &args.csv) {
+        Ok(ratings) => ratings,
+        Err(_) => {
+            println!("There was a problem opening the file \"{}\"", args.csv);
+            return;
+        }
+    };
     let mut ratings_sorted: Vec<_> = ratings.into_iter().collect();
 
     // Sort ratings according to options.
@@ -192,8 +198,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             rating.0.to_string().blue(),
         );
     }
-
-    Ok(())
 }
 
 /// Generate ratings for all players in the csv file passed in through stdin.
@@ -213,10 +217,9 @@ fn rate_file(
         skillratings::glicko2::Glicko2Rating,
     > = std::collections::HashMap::new();
 
-    let mut reader = csv::Reader::from_reader(
-        std::fs::File::open(file_path)
-            .expect(format!("There was a problem opening {}", file_path).as_str()),
-    );
+    let file = std::fs::File::open(file_path)?;
+
+    let mut reader = csv::Reader::from_reader(file);
     for result in reader.records() {
         // Unwrap the line
         let record = result?;
