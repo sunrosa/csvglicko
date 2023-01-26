@@ -8,6 +8,10 @@ mod local_glicko2;
 #[derive(Parser)]
 #[command(about)]
 struct Args {
+    /// CSV file path to calculate ratings for.
+    #[arg(help = "CSV file path to calculate ratings for.")]
+    csv: String,
+
     /// Maximum rating deviation to filter output with.
     #[arg(
         short = 'd',
@@ -123,7 +127,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     // Generate all ratings from stdin
-    let ratings = rate_stdin(&glicko2_config, &glicko2_default_rating)?;
+    let ratings = rate_file(&glicko2_config, &glicko2_default_rating, &args.csv)?;
     let mut ratings_sorted: Vec<_> = ratings.into_iter().collect();
 
     // Sort ratings according to options.
@@ -198,9 +202,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 ///
 /// * `glicko2_config` - The Glicko-2 configuration to be used in rating calculation.
 /// * `glicko2_default_rating` - The default Glicko-2 rating to be used for newly-instantiated players.
-fn rate_stdin(
+fn rate_file(
     glicko2_config: &skillratings::glicko2::Glicko2Config,
     glicko2_default_rating: &skillratings::glicko2::Glicko2Rating,
+    file_path: &String,
 ) -> Result<std::collections::HashMap<String, skillratings::glicko2::Glicko2Rating>, Box<dyn Error>>
 {
     let mut player_ratings: std::collections::HashMap<
@@ -208,7 +213,10 @@ fn rate_stdin(
         skillratings::glicko2::Glicko2Rating,
     > = std::collections::HashMap::new();
 
-    let mut reader = csv::Reader::from_reader(std::io::stdin());
+    let mut reader = csv::Reader::from_reader(
+        std::fs::File::open(file_path)
+            .expect(format!("There was a problem opening {}", file_path).as_str()),
+    );
     for result in reader.records() {
         // Unwrap the line
         let record = result?;
