@@ -217,6 +217,11 @@ fn rate_stdin(
         let player_1_name = record.get(0).unwrap().to_string();
         let player_2_name = record.get(1).unwrap().to_string();
 
+        // Skip game if a player is fighting themselves somehow
+        if player_1_name == player_2_name {
+            continue;
+        }
+
         // Get the outcome of the game from the csv line
         let outcome: f64 = record.get(2).unwrap().parse().unwrap();
 
