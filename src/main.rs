@@ -38,6 +38,7 @@ struct Args {
 
     /// Default rating to be used for players.
     #[arg(
+        short = 'r',
         long = "default-rating",
         help = "Default rating to be used for players.",
         default_value = "1500.0"
@@ -86,7 +87,7 @@ struct Args {
 
     /// Sort ascending by rating deviation.
     #[arg(
-        short = 'r',
+        short = 'e',
         long = "sort-deviation",
         help = "Sort ascending by rating deviation."
     )]
@@ -129,8 +130,11 @@ fn main() {
     // Generate all ratings from stdin
     let ratings = match rate_file(&glicko2_config, &glicko2_default_rating, &args.csv) {
         Ok(ratings) => ratings,
-        Err(_) => {
-            println!("There was a problem opening the file \"{}\"", args.csv);
+        Err(e) => {
+            println!(
+                "There was a problem opening or reading the file \"{}\": {}",
+                args.csv, e
+            );
             return;
         }
     };
@@ -189,13 +193,14 @@ fn main() {
         }
 
         println!(
-            "{}. {}{} {} {} {}",
+            "{:0index_width$}. {}{} {} {} {}",
             index + 1,
-            format!("{:.2}", rating.1.rating).red(),
+            format!("{:07.2}", rating.1.rating).red(),
             provisional_mark.yellow(),
-            format!("{:.0}", rating.1.deviation).cyan(),
+            format!("{:03.0}", rating.1.deviation).cyan(),
             format!("{:.8}", rating.1.volatility).purple(),
             rating.0.to_string().blue(),
+            index_width = ratings_sorted.len().to_string().len()
         );
     }
 }
