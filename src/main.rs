@@ -227,7 +227,7 @@ fn main() {
             index + 1,
             format!("{:07.2}", player.1.rating.rating).red(),
             provisional_mark.yellow(),
-            format!("{:06.2}", player.1.latest_change),
+            format!("{:+07.2}", player.1.latest_change),
             format!("{:03.0}", player.1.rating.deviation).cyan(),
             format!("{:.8}", player.1.rating.volatility).purple(),
             player.0.to_string().blue(),
