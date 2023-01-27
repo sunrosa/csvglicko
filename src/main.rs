@@ -110,6 +110,14 @@ struct Args {
     result_limit: Option<u32>,
 }
 
+/// A representation of one rated player.
+pub struct Player {
+    /// The player's Glicko-2 rating.
+    pub rating: skillratings::glicko2::Glicko2Rating,
+    /// The change (up or down) induced by the player's last game.
+    pub latest_change: f64,
+}
+
 fn main() {
     // Parse command-line arguments
     let args = Args::parse();
@@ -143,63 +151,86 @@ fn main() {
     // Sort ratings according to options.
     if args.sort_rating_deviation {
         if !args.sort_reverse {
-            ratings_sorted.sort_by(|a, b| a.1.deviation.partial_cmp(&b.1.deviation).unwrap());
+            ratings_sorted.sort_by(|a, b| {
+                a.1.rating
+                    .deviation
+                    .partial_cmp(&b.1.rating.deviation)
+                    .unwrap()
+            });
         } else {
-            ratings_sorted.sort_by(|a, b| b.1.deviation.partial_cmp(&a.1.deviation).unwrap());
+            ratings_sorted.sort_by(|a, b| {
+                b.1.rating
+                    .deviation
+                    .partial_cmp(&a.1.rating.deviation)
+                    .unwrap()
+            });
         }
     } else if args.sort_volatility {
         if !args.sort_reverse {
-            ratings_sorted.sort_by(|a, b| b.1.volatility.partial_cmp(&a.1.volatility).unwrap());
+            ratings_sorted.sort_by(|a, b| {
+                b.1.rating
+                    .volatility
+                    .partial_cmp(&a.1.rating.volatility)
+                    .unwrap()
+            });
         } else {
-            ratings_sorted.sort_by(|a, b| a.1.volatility.partial_cmp(&b.1.volatility).unwrap());
+            ratings_sorted.sort_by(|a, b| {
+                a.1.rating
+                    .volatility
+                    .partial_cmp(&b.1.rating.volatility)
+                    .unwrap()
+            });
         }
     } else {
         if !args.sort_reverse {
-            ratings_sorted.sort_by(|a, b| b.1.rating.partial_cmp(&a.1.rating).unwrap());
+            ratings_sorted
+                .sort_by(|a, b| b.1.rating.rating.partial_cmp(&a.1.rating.rating).unwrap());
         } else {
-            ratings_sorted.sort_by(|a, b| a.1.rating.partial_cmp(&b.1.rating).unwrap());
+            ratings_sorted
+                .sort_by(|a, b| a.1.rating.rating.partial_cmp(&b.1.rating.rating).unwrap());
         }
     }
 
     // Output loop
-    for (index, rating) in ratings_sorted.iter().enumerate() {
+    for (index, player) in ratings_sorted.iter().enumerate() {
         if args.result_limit.is_some() && index >= args.result_limit.unwrap() as usize {
             break;
         }
 
         // If the maximum deviation option is set, limit all output to below that number
         if args.maximum_deviation.is_some()
-            && rating.1.deviation > args.maximum_deviation.unwrap() as f64
+            && player.1.rating.deviation > args.maximum_deviation.unwrap() as f64
         {
             continue;
         }
 
         // If the minimum deviation option is set, limit all output to above that number
         if args.minimum_deviation.is_some()
-            && rating.1.deviation < args.minimum_deviation.unwrap() as f64
+            && player.1.rating.deviation < args.minimum_deviation.unwrap() as f64
         {
             continue;
         }
 
         // Filter out provisional ratings if the filter_provisional flag is set
-        if args.filter_provisional && rating.1.deviation > args.provisional_threshold {
+        if args.filter_provisional && player.1.rating.deviation > args.provisional_threshold {
             continue;
         }
 
         // Determine whether the provisional mark should be empty or a question mark
         let mut provisional_mark: &str = " ";
-        if rating.1.deviation > args.provisional_threshold {
+        if player.1.rating.deviation > args.provisional_threshold {
             provisional_mark = "?";
         }
 
         println!(
-            "{:0index_width$}. {}{} {} {} {}",
+            "{:0index_width$}. {}{} ({}) {} {} {}",
             index + 1,
-            format!("{:07.2}", rating.1.rating).red(),
+            format!("{:07.2}", player.1.rating.rating).red(),
             provisional_mark.yellow(),
-            format!("{:03.0}", rating.1.deviation).cyan(),
-            format!("{:.8}", rating.1.volatility).purple(),
-            rating.0.to_string().blue(),
+            format!("{:06.2}", player.1.latest_change),
+            format!("{:03.0}", player.1.rating.deviation).cyan(),
+            format!("{:.8}", player.1.rating.volatility).purple(),
+            player.0.to_string().blue(),
             index_width = ratings_sorted.len().to_string().len()
         );
     }
@@ -215,12 +246,8 @@ fn rate_file(
     glicko2_config: &skillratings::glicko2::Glicko2Config,
     glicko2_default_rating: &skillratings::glicko2::Glicko2Rating,
     file_path: &String,
-) -> Result<std::collections::HashMap<String, skillratings::glicko2::Glicko2Rating>, Box<dyn Error>>
-{
-    let mut player_ratings: std::collections::HashMap<
-        String,
-        skillratings::glicko2::Glicko2Rating,
-    > = std::collections::HashMap::new();
+) -> Result<std::collections::HashMap<String, Player>, Box<dyn Error>> {
+    let mut players: std::collections::HashMap<String, Player> = std::collections::HashMap::new();
 
     let file = std::fs::File::open(file_path)?;
 
@@ -242,23 +269,44 @@ fn rate_file(
         let outcome: f64 = record.get(2).unwrap().parse().unwrap();
 
         // Get players from storage, or create them otherwise
-        let mut player_1: skillratings::glicko2::Glicko2Rating = glicko2_default_rating.clone();
-        if player_ratings.contains_key(&player_1_name) {
-            player_1 = *player_ratings.get(&player_1_name).unwrap();
+        let mut player_1_rating: skillratings::glicko2::Glicko2Rating =
+            glicko2_default_rating.clone();
+        if players.contains_key(&player_1_name) {
+            player_1_rating = players.get(&player_1_name).unwrap().rating;
         }
-        let mut player_2: skillratings::glicko2::Glicko2Rating = glicko2_default_rating.clone();
-        if player_ratings.contains_key(&player_2_name) {
-            player_2 = *player_ratings.get(&player_2_name).unwrap();
+        let mut player_2_rating: skillratings::glicko2::Glicko2Rating =
+            glicko2_default_rating.clone();
+        if players.contains_key(&player_2_name) {
+            player_2_rating = players.get(&player_2_name).unwrap().rating;
         }
 
         // Rate the game
-        let (new_player_1, new_player_2) =
-            local_glicko2::glicko2(&player_1, &player_2, &outcome, &glicko2_config);
+        let (new_player_1_rating, new_player_2_rating) = local_glicko2::glicko2(
+            &player_1_rating,
+            &player_2_rating,
+            &outcome,
+            &glicko2_config,
+        );
+
+        let player_1_rating_change = new_player_1_rating.rating - player_1_rating.rating;
+        let player_2_rating_change = new_player_2_rating.rating - player_2_rating.rating;
 
         // Save player ratings to player_ratings
-        player_ratings.insert(player_1_name, new_player_1);
-        player_ratings.insert(player_2_name, new_player_2);
+        players.insert(
+            player_1_name,
+            Player {
+                rating: new_player_1_rating,
+                latest_change: player_1_rating_change,
+            },
+        );
+        players.insert(
+            player_2_name,
+            Player {
+                rating: new_player_2_rating,
+                latest_change: player_2_rating_change,
+            },
+        );
     }
 
-    Ok(player_ratings)
+    Ok(players)
 }
