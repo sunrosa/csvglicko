@@ -102,12 +102,20 @@ struct Args {
     sort_volatility: bool,
 
     /// Reverse sorting.
-    #[arg(short = 'i', long = "sort-reverse", help = "Reverse sorting.")]
+    #[arg(short = 's', long = "sort-reverse", help = "Reverse sorting.")]
     sort_reverse: bool,
 
     /// Output result limit.
     #[arg(short = 'l', long = "result-limit", help = "Output result limit.")]
     result_limit: Option<u32>,
+
+    /// Disable invisible indexes
+    #[arg(
+        short = 'i',
+        long = "invisible-indexes",
+        help = "Disable invisible indexes when filtering. (i.e. No gaps in printed index)"
+    )]
+    invisible_indexes: bool,
 }
 
 /// A representation of one rated player.
@@ -191,6 +199,9 @@ fn main() {
         }
     }
 
+    // When removing an index through filtering, add a number to index_subtraction to not include invisible indexes
+    let mut index_subtraction: i32 = 0;
+
     // Output loop
     for (index, player) in ratings_sorted.iter().enumerate() {
         if args.result_limit.is_some() && index >= args.result_limit.unwrap() as usize {
@@ -201,6 +212,10 @@ fn main() {
         if args.maximum_deviation.is_some()
             && player.1.rating.deviation > args.maximum_deviation.unwrap() as f64
         {
+            if args.invisible_indexes {
+                index_subtraction += 1;
+            }
+
             continue;
         }
 
@@ -208,11 +223,17 @@ fn main() {
         if args.minimum_deviation.is_some()
             && player.1.rating.deviation < args.minimum_deviation.unwrap() as f64
         {
+            if args.invisible_indexes {
+                index_subtraction += 1;
+            }
             continue;
         }
 
         // Filter out provisional ratings if the filter_provisional flag is set
         if args.filter_provisional && player.1.rating.deviation > args.provisional_threshold {
+            if args.invisible_indexes {
+                index_subtraction += 1;
+            }
             continue;
         }
 
@@ -224,7 +245,7 @@ fn main() {
 
         println!(
             "{:0index_width$}. {}{} ({}) {} {} {}",
-            index + 1,
+            (index as i32) + 1 - index_subtraction,
             format!("{:07.2}", player.1.rating.rating).red(),
             provisional_mark.yellow(),
             format!("{:+07.2}", player.1.latest_change),
